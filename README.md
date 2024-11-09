@@ -53,10 +53,6 @@ After running the API, create a privileged user in the database:
 INSERT INTO sudoers(passkey, super_user, sudoer) VALUES("generatepasskey", 1, 1);
 ```
 
-```sql
-INSERT INTO sudoers(passkey, sudoer) VALUES("generatepasskey", 1);
-```
-
 ### User Types
 Owner: Set both super_user and sudoer to 1.<br/>
 Regular User: Only sudoer permission is needed (super_user can be 0).
