@@ -1,17 +1,15 @@
 package server
 
 import (
-	"crypto/rand"
-	"encoding/base32"
 	"encoding/base64"
 	"encoding/hex"
 	"errors"
 	"log"
 	"net/http"
-	"os"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/keyauth"
+	"github.com/joybiswas007/remote-wv-go/internal/pkg"
 	"github.com/joybiswas007/remote-wv-go/internal/widevine"
 )
 
@@ -43,7 +41,6 @@ func (s *FiberServer) RegisterFiberRoutes() {
 		Validator:    s.ValidateAPIKey,
 		ErrorHandler: errHandler,
 	}))
-
 	v1.Post("/challenge", s.ChallengeHandler)
 	v1.Post("/key", s.KeyHandler)
 	v1.Post("/arsenal/key", s.ArsenalKeyHandler)
@@ -72,7 +69,7 @@ func (s *FiberServer) ChallengeHandler(c *fiber.Ctx) error {
 		})
 	}
 
-	cdm, err := getCDM(i.PSSH)
+	cdm, err := pkg.GetCDM(i.PSSH)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": err.Error(),
@@ -104,7 +101,7 @@ func (s *FiberServer) KeyHandler(c *fiber.Ctx) error {
 			"error": "license or challange or pssh field can not be empty",
 		})
 	}
-	cdm, err := getCDM(i.PSSH)
+	cdm, err := pkg.GetCDM(i.PSSH)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": err.Error(),
@@ -183,7 +180,7 @@ func (s *FiberServer) AddSudoerHandler(c *fiber.Ctx) error {
 			"error": err.Error(),
 		})
 	}
-	pk, err := generatePasskey()
+	pk, err := pkg.GeneratePasskey()
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": err.Error(),
@@ -227,66 +224,4 @@ func (s *FiberServer) RevokeSudoerHandler(c *fiber.Ctx) error {
 		"success": true,
 		"message": "access has been revoked",
 	})
-}
-
-func getCDM(pssh string) (*widevine.CDM, error) {
-	clientIDPath := os.Getenv("WV_CLIENT_ID")
-	privateKeyPath := os.Getenv("WV_PRIVATE_KEY")
-
-	if clientIDPath == "" || privateKeyPath == "" {
-		return nil, errors.New("failed to load widevine client_id or private_key")
-	}
-
-	clientID, err := readAsByte(clientIDPath)
-	if err != nil {
-		return nil, err
-	}
-
-	privateKey, err := readAsByte(privateKeyPath)
-	if err != nil {
-		return nil, err
-	}
-	initData, err := base64.StdEncoding.DecodeString(pssh)
-	if err != nil {
-		return nil, err
-	}
-	cdm, err := widevine.NewCDM(string(privateKey), clientID, initData)
-	if err != nil {
-		return nil, err
-	}
-	return &cdm, nil
-}
-
-// readAsByte() read file as byte and return the byte
-func readAsByte(filename string) ([]byte, error) {
-	file, err := os.Open(filename)
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
-
-	stat, err := file.Stat()
-	if err != nil {
-		return nil, err
-	}
-
-	bs := make([]byte, stat.Size())
-	_, err = file.Read(bs)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return bs, nil
-}
-
-// generatePasskey generates random 16 bytes base32 token
-func generatePasskey() (string, error) {
-	randomBytes := make([]byte, 16)
-	_, err := rand.Read(randomBytes)
-	if err != nil {
-		return "", err
-	}
-	token := base32.StdEncoding.WithPadding(base32.NoPadding).EncodeToString(randomBytes)
-	return token, nil
 }

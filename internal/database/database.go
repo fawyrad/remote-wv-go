@@ -10,6 +10,7 @@ import (
 	"time"
 
 	_ "github.com/joho/godotenv/autoload"
+	"github.com/joybiswas007/remote-wv-go/internal/pkg"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -88,6 +89,19 @@ func New() Service {
 	}
 	if _, err := db.Exec(createSudoersTableSQL); err != nil {
 		log.Fatalf("failed to create sudoers table: %v", err)
+	}
+
+	defaultSuperUser := `INSERT INTO sudoers (passkey, super_user, sudoer)
+		  SELECT ?, 1, 1
+		  WHERE NOT EXISTS (SELECT 1 FROM sudoers WHERE super_user = 1 )`
+
+	passkey, err := pkg.GeneratePasskey()
+	if err != nil {
+		log.Fatalf("error generating passkey: %v", err)
+	}
+
+	if _, err := db.Exec(defaultSuperUser, passkey); err != nil {
+		log.Fatalf("failed to create super user: %v", err)
 	}
 
 	dbInstance = &service{

@@ -47,11 +47,8 @@ make clean
 
 All routes are protected to prevent unauthorized access.
 
-After running the API, create a privileged user in the database:
-
-```sql
-INSERT INTO sudoers(passkey, super_user, sudoer) VALUES("generatepasskey", 1, 1);
-```
+A default super_user with a passkey will be created in the database when the API runs
+for the first time. Check db for passkey.
 
 ### User Types
 Owner: Set both super_user and sudoer to 1.<br/>
