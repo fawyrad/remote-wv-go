@@ -82,8 +82,8 @@ curl --location 'localhost:4000/v1/key' \
 --header 'passkey: passkey' \
 --header 'Content-Type: application/json' \
 --data '{
-    "license": "CAIS3wIKPAogN+license you get back from any site",
-    "challenge": "CAESsA4+ you received from the challenge route",
+    "license": "CAIS+license you get back from any site",
+    "challenge": "CAES+ you received from the challenge route",
     "pssh": "pass the pssh again"
 }'
 ```
