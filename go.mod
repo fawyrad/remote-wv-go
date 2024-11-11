@@ -5,6 +5,7 @@ go 1.23.2
 require (
 	github.com/aead/cmac v0.0.0-20160719120800-7af84192f0b1
 	github.com/gofiber/fiber/v2 v2.52.5
+	github.com/gofiber/storage/sqlite3 v1.3.8
 	github.com/joho/godotenv v1.5.1
 	github.com/mattn/go-sqlite3 v1.14.24
 	google.golang.org/protobuf v1.35.1

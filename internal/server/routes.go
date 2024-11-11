@@ -7,9 +7,14 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"strconv"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/keyauth"
+	"github.com/gofiber/fiber/v2/middleware/limiter"
+	"github.com/gofiber/storage/sqlite3"
 	"github.com/joybiswas007/remote-wv-go/internal/pkg"
 	"github.com/joybiswas007/remote-wv-go/internal/widevine"
 )
@@ -43,6 +48,31 @@ func (s *FiberServer) RegisterFiberRoutes() {
 		Validator:    s.ValidateAPIKey,
 		ErrorHandler: errHandler,
 	}))
+
+	maxReqLimit := 100
+	max := os.Getenv("MAX_REQ_LIMIT")
+	if max != "" {
+		value, err := strconv.Atoi(max)
+		if err != nil {
+			fmt.Printf("Warning: MAX_REQ_LIMIT is not a valid integer, using default value %d", maxReqLimit)
+		}
+		maxReqLimit = value
+	}
+
+	storage := sqlite3.New()
+
+	v1.Use(limiter.New(limiter.Config{
+		Max:        maxReqLimit,
+		Expiration: 60 * time.Second,
+		LimitReached: func(c *fiber.Ctx) error {
+			return c.Status(fiber.StatusTooManyRequests).JSON(fiber.Map{
+				"error": "Too many requests, try again later",
+			})
+		},
+		Storage: storage,
+	}))
+
+	v1.Get("/", func(c *fiber.Ctx) error { return c.Status(fiber.StatusOK).JSON(fiber.Map{"hello": "world"}) })
 	v1.Post("/challenge", s.ChallengeHandler)
 	v1.Post("/key", s.KeyHandler)
 	v1.Post("/arsenal/key", s.ArsenalKeyHandler)
@@ -163,7 +193,7 @@ func (s *FiberServer) ArsenalKeyHandler(c *fiber.Ctx) error {
 
 	key, err := s.DB.Get(i.PSSH)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"error": err.Error(),
 		})
 	}

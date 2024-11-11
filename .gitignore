@@ -35,3 +35,4 @@ main
 
 # Ignore sqlite db
 *.db
+*.sqlite3

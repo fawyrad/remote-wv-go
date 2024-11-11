@@ -10,9 +10,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/helmet"
-	"github.com/gofiber/fiber/v2/middleware/limiter"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	_ "github.com/joho/godotenv/autoload"
 	"github.com/joybiswas007/remote-wv-go/internal/server"
@@ -46,26 +44,6 @@ func main() {
 
 	server.Use(recover.New())
 	server.Use(helmet.New())
-
-	maxReqLimit := 100
-	max := os.Getenv("MAX_REQ_LIMIT")
-	if max != "" {
-		value, err := strconv.Atoi(max)
-		if err != nil {
-			fmt.Printf("Warning: MAX_REQ_LIMIT is not a valid integer, using default value %d", maxReqLimit)
-		}
-		maxReqLimit = value
-	}
-
-	server.Use(limiter.New(limiter.Config{
-		Max:        maxReqLimit,
-		Expiration: 60 * time.Second,
-		LimitReached: func(c *fiber.Ctx) error {
-			return c.Status(fiber.StatusTooManyRequests).JSON(fiber.Map{
-				"error": "Too many requests, try again later.",
-			})
-		},
-	}))
 
 	server.RegisterFiberRoutes()
 
