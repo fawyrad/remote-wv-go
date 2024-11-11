@@ -98,7 +98,7 @@ curl --location 'localhost:4000/v1/arsenal/key' \
 }'
 ```
 
-## super user only routes
+## Super User routes
 ### passkey
 
 generate:
@@ -107,10 +107,12 @@ curl --location 'http://localhost:8080/su/passkey' \
 --header 'Content-Type: application/json' \
 --header 'passkey: super_user_passkey' \
 --data '{
-    "sudoer": 1 //choose permission for passkey
-}'
+    "sudoer": 1, // Default: 0  
+    "super_user": 0, // Default: 0 (Super User is only for owner. Give permission wisely!) 
+    "quantity": 5 // Default: 1
+}`
 ```
-
+returns an array of passkeys
 
 revoke:
 

@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 
@@ -18,7 +19,8 @@ type input struct {
 	Challenge string `json:"challenge,omitempty"`
 	License   string `json:"license,omitempty"`
 	Passkey   string `json:"passkey,omitempty"`
-	SuperUser int    `json:"su,omitempty"`
+	Quantity  int    `json:"quantity,omitempty"`
+	SuperUser int    `json:"super_user,omitempty"`
 	Sudoer    int    `json:"sudoer,omitempty"`
 }
 
@@ -50,7 +52,6 @@ func (s *FiberServer) RegisterFiberRoutes() {
 		Validator:    s.SUChecker,
 		ErrorHandler: errHandler,
 	}))
-
 	su.Post("/passkey", s.AddSudoerHandler)
 	su.Post("/revoke", s.RevokeSudoerHandler)
 }
@@ -175,28 +176,35 @@ func (s *FiberServer) ArsenalKeyHandler(c *fiber.Ctx) error {
 
 func (s *FiberServer) AddSudoerHandler(c *fiber.Ctx) error {
 	i := new(input)
+	i.Quantity = 1
 	if err := c.BodyParser(i); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": err.Error(),
 		})
 	}
-	pk, err := pkg.GeneratePasskey()
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": err.Error(),
-		})
-	}
 
-	if err := s.DB.SudoSU(pk, i.SuperUser, i.Sudoer); err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": err.Error(),
-		})
+	var passkeys []string
+	for j := 1; j <= i.Quantity; j++ {
+		pk, err := pkg.GeneratePasskey()
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"error": err.Error(),
+			})
+		}
+
+		passkeys = append(passkeys, pk)
+
+		if err := s.DB.SudoSU(pk, i.SuperUser, i.Sudoer); err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"error": err.Error(),
+			})
+		}
 	}
 
 	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
-		"success": true,
-		"passkey": pk,
-		"message": "Save the passkey, without it you won't be able to request for keys",
+		"success":  true,
+		"passkeys": passkeys,
+		"message":  fmt.Sprintf("Yay! your %d keys has been generated", i.Quantity),
 	})
 
 }
