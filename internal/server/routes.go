@@ -72,10 +72,9 @@ func (s *FiberServer) RegisterFiberRoutes() {
 		Storage: storage,
 	}))
 
-	v1.Get("/", func(c *fiber.Ctx) error { return c.Status(fiber.StatusOK).JSON(fiber.Map{"hello": "world"}) })
 	v1.Post("/challenge", s.ChallengeHandler)
 	v1.Post("/key", s.KeyHandler)
-	v1.Post("/arsenal/key", s.ArsenalKeyHandler)
+	v1.Post("/arsenal", s.ArsenalKeyHandler)
 
 	su := s.Group("/su", keyauth.New(keyauth.Config{
 		KeyLookup:    "key:passkey",

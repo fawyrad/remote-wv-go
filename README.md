@@ -90,7 +90,7 @@ curl --location 'localhost:4000/v1/key' \
 
 get cached key:
 ```
-curl --location 'localhost:4000/v1/arsenal/key' \
+curl --location 'localhost:4000/v1/arsenal' \
 --header 'passkey: passkey' \
 --header 'Content-Type: application/json' \
 --data '{
