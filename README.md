@@ -66,6 +66,12 @@ By default both `super_user` and `sudoer` field is set to 0.
 
 ## Routes
 
+check whether user is authenticated or not:
+```
+curl --location --request POST 'localhost:4000/v1/auth' \
+--header 'passkey: passkey'
+```
+
 get callenge:
 ```
 curl --location 'localhost:4000/v1/challenge' \

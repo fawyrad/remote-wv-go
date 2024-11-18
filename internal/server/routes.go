@@ -72,6 +72,7 @@ func (s *FiberServer) RegisterFiberRoutes() {
 		Storage: storage,
 	}))
 
+	v1.Post("/auth", s.AuthHandler)
 	v1.Post("/challenge", s.ChallengeHandler)
 	v1.Post("/key", s.KeyHandler)
 	v1.Post("/arsenal", s.ArsenalKeyHandler)
@@ -83,6 +84,15 @@ func (s *FiberServer) RegisterFiberRoutes() {
 	}))
 	su.Post("/passkey", s.AddSudoerHandler)
 	su.Post("/revoke", s.RevokeSudoerHandler)
+}
+
+// AuthHandler just returns ok if user is
+// authenticated or not
+func (s *FiberServer) AuthHandler(c *fiber.Ctx) error {
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"success": true,
+		"message": "OK",
+	})
 }
 
 func (s *FiberServer) ChallengeHandler(c *fiber.Ctx) error {
