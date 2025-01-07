@@ -52,9 +52,6 @@ Clean up binary from the last build:
 make clean
 ```
 
-## CLI
-
-
 ## Authentication
 
 All routes are protected to prevent unauthorized access.
