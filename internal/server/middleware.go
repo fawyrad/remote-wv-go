@@ -9,9 +9,27 @@ import (
 
 var (
 	ErrNotEnoughPerm = errors.New("You aren't authorized to perform this action.")
+	PsshNotFound     = "pssh field can not be emtpy"
 )
 
-func (s *FiberServer) ValidateAPIKey(c *fiber.Ctx, key string) (bool, error) {
+func errHandler(c *fiber.Ctx, err error) error {
+	if err == keyauth.ErrMissingOrMalformedAPIKey {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+	return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+		"error": err.Error(),
+	})
+}
+
+func limitReched(c *fiber.Ctx) error {
+	return c.Status(fiber.StatusTooManyRequests).JSON(fiber.Map{
+		"error": "Too many requests, try again later",
+	})
+}
+
+func (s *FiberServer) validateAPIKey(c *fiber.Ctx, key string) (bool, error) {
 	c.Accepts(fiber.MIMEApplicationJSON)
 
 	su, sudo, err := s.DB.Sudoer(key)
@@ -28,7 +46,7 @@ func (s *FiberServer) ValidateAPIKey(c *fiber.Ctx, key string) (bool, error) {
 	return true, nil
 }
 
-func (s *FiberServer) SUChecker(c *fiber.Ctx, key string) (bool, error) {
+func (s *FiberServer) suChecker(c *fiber.Ctx, key string) (bool, error) {
 	c.Accepts(fiber.MIMEApplicationJSON)
 
 	su, _, err := s.DB.Sudoer(key)

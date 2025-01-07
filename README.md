@@ -23,6 +23,15 @@ Build the application
 make build
 ```
 
+After running the api for first time a default super_user is created
+It's not good practice to loggin the passkey
+fetch the passkey of that user via the cli app
+
+Build the cli app
+```bash
+make cli
+```
+
 Run the application
 ```bash
 make run
@@ -42,6 +51,9 @@ Clean up binary from the last build:
 ```bash
 make clean
 ```
+
+## CLI
+
 
 ## Authentication
 
@@ -113,8 +125,8 @@ curl --location 'http://localhost:8080/su/passkey' \
 --header 'Content-Type: application/json' \
 --header 'passkey: super_user_passkey' \
 --data '{
-    "sudoer": 1, // Default: 0  
-    "super_user": 0, // Default: 0 (Super User is only for owner. Give permission wisely!) 
+    "sudoer": 1, // Default: 0
+    "super_user": 0, // Default: 0 (Super User is only for owner. Give permission wisely!)
     "quantity": 5 // Default: 1
 }`
 ```

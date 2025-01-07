@@ -3,7 +3,6 @@ package server
 import (
 	"encoding/base64"
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -29,23 +28,10 @@ type input struct {
 	Sudoer    int    `json:"sudoer,omitempty"`
 }
 
-var (
-	PsshNotFound = errors.New("pssh field can not be emtpy")
-)
-
-func errHandler(c *fiber.Ctx, err error) error {
-	if err == keyauth.ErrMissingOrMalformedAPIKey {
-		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-			"error": err.Error(),
-		})
-	}
-	return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": err.Error()})
-}
-
 func (s *FiberServer) RegisterFiberRoutes() {
-	v1 := s.Group("/v1", keyauth.New(keyauth.Config{
+	v1 := s.App.Group("/v1", keyauth.New(keyauth.Config{
 		KeyLookup:    "key:passkey",
-		Validator:    s.ValidateAPIKey,
+		Validator:    s.validateAPIKey,
 		ErrorHandler: errHandler,
 	}))
 
@@ -62,32 +48,36 @@ func (s *FiberServer) RegisterFiberRoutes() {
 	storage := sqlite3.New()
 
 	v1.Use(limiter.New(limiter.Config{
-		Max:        maxReqLimit,
-		Expiration: 60 * time.Second,
-		LimitReached: func(c *fiber.Ctx) error {
-			return c.Status(fiber.StatusTooManyRequests).JSON(fiber.Map{
-				"error": "Too many requests, try again later",
-			})
-		},
-		Storage: storage,
+		Max:          maxReqLimit,
+		Expiration:   60 * time.Second,
+		LimitReached: limitReched,
+		Storage:      storage,
 	}))
 
+	versionOneRouter(v1, s)
+
+	super := s.App.Group("/su", keyauth.New(keyauth.Config{
+		KeyLookup:    "key:passkey",
+		Validator:    s.suChecker,
+		ErrorHandler: errHandler,
+	}))
+
+	superUserRouter(super, s)
+}
+
+func versionOneRouter(v1 fiber.Router, s *FiberServer) {
 	v1.Post("/auth", s.AuthHandler)
 	v1.Post("/challenge", s.ChallengeHandler)
 	v1.Post("/key", s.KeyHandler)
 	v1.Post("/arsenal", s.ArsenalKeyHandler)
+}
 
-	su := s.Group("/su", keyauth.New(keyauth.Config{
-		KeyLookup:    "key:passkey",
-		Validator:    s.SUChecker,
-		ErrorHandler: errHandler,
-	}))
+func superUserRouter(su fiber.Router, s *FiberServer) {
 	su.Post("/passkey", s.AddSudoerHandler)
 	su.Post("/revoke", s.RevokeSudoerHandler)
 }
 
-// AuthHandler just returns ok if user is
-// authenticated or not
+// AuthHandler just returns ok if user is authenticated or not
 func (s *FiberServer) AuthHandler(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
 		"success": true,
@@ -202,7 +192,7 @@ func (s *FiberServer) ArsenalKeyHandler(c *fiber.Ctx) error {
 
 	key, err := s.DB.Get(i.PSSH)
 	if err != nil {
-		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": err.Error(),
 		})
 	}
@@ -245,7 +235,6 @@ func (s *FiberServer) AddSudoerHandler(c *fiber.Ctx) error {
 		"passkeys": passkeys,
 		"message":  fmt.Sprintf("Yay! your %d keys has been generated", i.Quantity),
 	})
-
 }
 
 func (s *FiberServer) RevokeSudoerHandler(c *fiber.Ctx) error {
@@ -257,7 +246,7 @@ func (s *FiberServer) RevokeSudoerHandler(c *fiber.Ctx) error {
 	}
 	if i.Passkey == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "In order to revoke access, you need pass the passkey.",
+			"error": "In order to revoke access, you need to pass the passkey.",
 		})
 	}
 

@@ -5,13 +5,18 @@ all: build test
 
 build:
 	@echo "Building..."
-	
-	
+
+
 	@go build -o main cmd/api/main.go
 
 # Run the application
 run:
 	@go run cmd/api/main.go
+
+# build the cli application
+cli:
+	@echo "Building cli app..."
+	@go build -o cli_main cmd/cli/main.go
 
 # Test the application
 test:
@@ -22,6 +27,7 @@ test:
 clean:
 	@echo "Cleaning..."
 	@rm -f main
+	@rm -f cli_main
 
 # Live Reload
 watch:

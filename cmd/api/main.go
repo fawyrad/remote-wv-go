@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2/middleware/helmet"
+	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	_ "github.com/joho/godotenv/autoload"
 	"github.com/joybiswas007/remote-wv-go/internal/server"
@@ -44,6 +45,7 @@ func main() {
 
 	server.Use(recover.New())
 	server.Use(helmet.New())
+	server.Use(logger.New())
 
 	server.RegisterFiberRoutes()
 
@@ -68,5 +70,6 @@ func main() {
 	//Close the database connection
 	defer func() {
 		server.DB.Close()
+		log.Println("Disconnected from database.")
 	}()
 }

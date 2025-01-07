@@ -31,6 +31,11 @@ type Service interface {
 	//Revoke revokes user access
 	Revoke(passkey string) error
 
+	//Get the OwnerPasskey.
+	// This is helpful for the first run of the API because
+	//  we don't want to expose the API key by logging it.
+	OP() ([]*Sudoer, error)
+
 	// Close terminates the database connection.
 	// It returns an error if the connection cannot be closed.
 	Close() error
@@ -209,11 +214,47 @@ func (s *service) Get(pssh string) (*Key, error) {
 	return &key, nil
 }
 
+func (s *service) OP() ([]*Sudoer, error) {
+	query := `
+	SELECT passkey
+	FROM sudoers
+	WHERE sudoer = 1 & super_user = 1
+	`
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	rows, err := s.db.QueryContext(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var sudoers []*Sudoer
+	for rows.Next() {
+		var sudoer Sudoer
+		err := rows.Scan(
+			&sudoer.Passkey,
+		)
+		if err != nil {
+			return nil, err
+		}
+		sudoers = append(sudoers, &sudoer)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	if len(sudoers) == 0 {
+		return nil, errors.New("no records found")
+	}
+
+	return sudoers, nil
+}
+
 // Close closes the database connection.
 // It logs a message indicating the disconnection from the specific database.
 // If the connection is successfully closed, it returns nil.
 // If an error occurs while closing the connection, it returns the error.
 func (s *service) Close() error {
-	log.Printf("Disconnected from database: %s", dburl)
 	return s.db.Close()
 }
